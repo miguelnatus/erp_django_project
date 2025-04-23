@@ -1,0 +1,445 @@
+{% extends 'base.html' %}
+
+{% block title %}Movimentações - Estoque{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/estoque/">Estoque</a></li>
+<li class="breadcrumb-item active" aria-current="page">Movimentações</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#filtroModal">
+        <i class="bi bi-funnel me-1"></i> Filtrar
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i> Exportar
+    </button>
+</div>
+<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#novaMovimentacaoModal">
+    <i class="bi bi-plus-circle me-1"></i> Nova Movimentação
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Resumo de Movimentações -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-arrow-left-right"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_movimentacoes }}</h3>
+                    <p>Total de Movimentações</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="bi bi-arrow-down-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_entradas }}</h3>
+                    <p>Entradas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-danger">
+                <div class="stat-icon">
+                    <i class="bi bi-arrow-up-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_saidas }}</h3>
+                    <p>Saídas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="bi bi-tools"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_ajustes }}</h3>
+                    <p>Ajustes</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Movimentações -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Movimentações - Últimos 30 dias</h5>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-secondary active">Diário</button>
+                <button type="button" class="btn btn-outline-secondary">Semanal</button>
+                <button type="button" class="btn btn-outline-secondary">Mensal</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="height: 300px;">
+                <canvas id="movimentacoesChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Movimentações -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Movimentações</h5>
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <input type="text" class="form-control" placeholder="Buscar movimentação..." aria-label="Buscar movimentação">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Data</th>
+                            <th>Produto</th>
+                            <th>Tipo</th>
+                            <th>Quantidade</th>
+                            <th>Motivo</th>
+                            <th>Responsável</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimentacao in movimentacoes %}
+                        <tr>
+                            <td>{{ movimentacao.id }}</td>
+                            <td>{{ movimentacao.data }}</td>
+                            <td>{{ movimentacao.produto.nome }}</td>
+                            <td>
+                                {% if movimentacao.tipo == 'entrada' %}
+                                <span class="badge bg-success">Entrada</span>
+                                {% elif movimentacao.tipo == 'saida' %}
+                                <span class="badge bg-danger">Saída</span>
+                                {% else %}
+                                <span class="badge bg-warning">Ajuste</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if movimentacao.tipo == 'entrada' %}
+                                <span class="text-success">+{{ movimentacao.quantidade }}</span>
+                                {% elif movimentacao.tipo == 'saida' %}
+                                <span class="text-danger">-{{ movimentacao.quantidade }}</span>
+                                {% else %}
+                                <span class="text-warning">{{ movimentacao.quantidade }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ movimentacao.motivo }}</td>
+                            <td>{{ movimentacao.responsavel }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="/estoque/movimentacoes/{{ movimentacao.id }}/" class="btn btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if movimentacao.pode_estornar %}
+                                    <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#estornarModal{{ movimentacao.id }}">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Modal de Estorno -->
+                                {% if movimentacao.pode_estornar %}
+                                <div class="modal fade" id="estornarModal{{ movimentacao.id }}" tabindex="-1" aria-labelledby="estornarModalLabel{{ movimentacao.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="estornarModalLabel{{ movimentacao.id }}">Confirmar Estorno</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Tem certeza que deseja estornar a movimentação de <strong>{{ movimentacao.produto.nome }}</strong>?</p>
+                                                <p>Tipo: <strong>{{ movimentacao.tipo }}</strong></p>
+                                                <p>Quantidade: <strong>{{ movimentacao.quantidade }}</strong></p>
+                                                <p>Motivo: <strong>{{ movimentacao.motivo }}</strong></p>
+                                                <p class="text-warning"><strong>Atenção:</strong> Esta ação irá criar uma movimentação inversa para compensar a movimentação original.</p>
+                                                
+                                                <div class="mb-3">
+                                                    <label for="motivoEstorno{{ movimentacao.id }}" class="form-label">Motivo do Estorno</label>
+                                                    <textarea class="form-control" id="motivoEstorno{{ movimentacao.id }}" rows="3" required></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="button" class="btn btn-warning">Confirmar Estorno</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-3">Nenhuma movimentação encontrada.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <nav aria-label="Paginação de movimentações">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
+                    </li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="#">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Filtro -->
+<div class="modal fade" id="filtroModal" tabindex="-1" aria-labelledby="filtroModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filtroModalLabel">Filtrar Movimentações</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="filtroDataInicio" class="form-label">Data Inicial</label>
+                            <input type="date" class="form-control" id="filtroDataInicio">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="filtroDataFim" class="form-label">Data Final</label>
+                            <input type="date" class="form-control" id="filtroDataFim">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroProduto" class="form-label">Produto</label>
+                        <select class="form-select" id="filtroProduto">
+                            <option value="">Todos</option>
+                            {% for produto in produtos %}
+                            <option value="{{ produto.id }}">{{ produto.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroTipo" class="form-label">Tipo</label>
+                        <select class="form-select" id="filtroTipo">
+                            <option value="">Todos</option>
+                            <option value="entrada">Entrada</option>
+                            <option value="saida">Saída</option>
+                            <option value="ajuste">Ajuste</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroMotivo" class="form-label">Motivo</label>
+                        <select class="form-select" id="filtroMotivo">
+                            <option value="">Todos</option>
+                            <option value="compra">Compra</option>
+                            <option value="venda">Venda</option>
+                            <option value="devolucao">Devolução</option>
+                            <option value="perda">Perda/Avaria</option>
+                            <option value="inventario">Inventário</option>
+                            <option value="estorno">Estorno</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroResponsavel" class="form-label">Responsável</label>
+                        <input type="text" class="form-control" id="filtroResponsavel">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Aplicar Filtros</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Nova Movimentação -->
+<div class="modal fade" id="novaMovimentacaoModal" tabindex="-1" aria-labelledby="novaMovimentacaoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="novaMovimentacaoModalLabel">Nova Movimentação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="produto" class="form-label">Produto</label>
+                        <select class="form-select" id="produto" required>
+                            <option value="">Selecione um produto</option>
+                            {% for produto in produtos %}
+                            <option value="{{ produto.id }}">{{ produto.nome }} (Estoque: {{ produto.quantidade }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tipoMovimentacao" class="form-label">Tipo de Movimentação</label>
+                        <select class="form-select" id="tipoMovimentacao" required>
+                            <option value="entrada">Entrada</option>
+                            <option value="saida">Saída</option>
+                            <option value="ajuste">Ajuste</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantidade" class="form-label">Quantidade</label>
+                        <input type="number" class="form-control" id="quantidade" min="1" value="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="motivo" class="form-label">Motivo</label>
+                        <select class="form-select" id="motivo" required>
+                            <option value="compra">Compra</option>
+                            <option value="venda">Venda</option>
+                            <option value="devolucao">Devolução</option>
+                            <option value="perda">Perda/Avaria</option>
+                            <option value="inventario">Inventário</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="observacoes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="observacoes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Confirmar Movimentação</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gráfico de Movimentações
+        const ctx = document.getElementById('movimentacoesChart').getContext('2d');
+        
+        // Dados de exemplo - seriam substituídos por dados reais do backend
+        const labels = [{% for data in datas %}'{{ data }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const entradas = [{% for valor in valores_entrada %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const saidas = [{% for valor in valores_saida %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const ajustes = [{% for valor in valores_ajuste %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Entradas',
+                        data: entradas,
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Saídas',
+                        data: saidas,
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Ajustes',
+                        data: ajustes,
+                        backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // Validação de formulário de nova movimentação
+        const tipoMovimentacaoSelect = document.getElementById('tipoMovimentacao');
+        const quantidadeInput = document.getElementById('quantidade');
+        const produtoSelect = document.getElementById('produto');
+        
+        if (tipoMovimentacaoSelect && quantidadeInput && produtoSelect) {
+            tipoMovimentacaoSelect.addEventListener('change', function() {
+                if (this.value === 'saida') {
+                    // Ao selecionar saída, verificar estoque disponível
+                    const produtoOption = produtoSelect.options[produtoSelect.selectedIndex];
+                    if (produtoOption && produtoOption.value) {
+                        const estoqueMatch = produtoOption.text.match(/Estoque: (\d+)/);
+                        if (estoqueMatch && estoqueMatch[1]) {
+                            const estoqueDisponivel = parseInt(estoqueMatch[1]);
+                            quantidadeInput.max = estoqueDisponivel;
+                            if (parseInt(quantidadeInput.value) > estoqueDisponivel) {
+                                quantidadeInput.value = estoqueDisponivel;
+                            }
+                        }
+                    }
+                } else {
+                    // Para entrada ou ajuste, não limitar quantidade
+                    quantidadeInput.removeAttribute('max');
+                }
+            });
+            
+            produtoSelect.addEventListener('change', function() {
+                if (tipoMovimentacaoSelect.value === 'saida') {
+                    // Ao mudar produto, verificar estoque disponível se for saída
+                    const produtoOption = this.options[this.selectedIndex];
+                    if (produtoOption && produtoOption.value) {
+                        const estoqueMatch = produtoOption.text.match(/Estoque: (\d+)/);
+                        if (estoqueMatch && estoqueMatch[1]) {
+                            const estoqueDisponivel = parseInt(estoqueMatch[1]);
+                            quantidadeInput.max = estoqueDisponivel;
+                            if (parseInt(quantidadeInput.value) > estoqueDisponivel) {
+                                quantidadeInput.value = estoqueDisponivel;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

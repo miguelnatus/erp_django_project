@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema ERP{% endblock %}</title>
+    
+    <!-- Fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/erp-styles.css">
+    <link rel="stylesheet" href="/static/css/erp-responsive.css">
+    
+    <!-- Estilos adicionais específicos da página -->
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Link de acessibilidade para pular navegação -->
+    <a href="#mainContent" class="skip-link">Pular para o conteúdo principal</a>
+    
+    <!-- Loader de página -->
+    <div id="pageLoader" class="position-fixed top-0 start-0 w-100 h-100 bg-white d-flex justify-content-center align-items-center d-none" style="z-index: 9999;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+    </div>
+
+    <!-- Container de notificações toast -->
+    <div id="toastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
+
+    <!-- Cabeçalho -->
+    <header class="navbar navbar-dark sticky-top flex-md-nowrap p-0 shadow">
+        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 d-flex align-items-center" href="/">
+            <i class="bi bi-building-gear me-2"></i>
+            <span>Sistema ERP</span>
+        </a>
+        
+        <button id="sidebarToggle" class="navbar-toggler d-md-none collapsed" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="w-100 d-none d-md-block"></div>
+        
+        <div class="navbar-nav flex-row">
+            <!-- Botão de modo escuro -->
+            <div class="nav-item px-3 d-flex align-items-center">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="darkModeToggle" role="switch" aria-label="Alternar modo escuro">
+                    <label class="form-check-label text-light d-none d-sm-inline" for="darkModeToggle">
+                        <i class="bi bi-moon-stars"></i>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Notificações -->
+            <div class="nav-item dropdown px-3">
+                <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-bell"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        3
+                        <span class="visually-hidden">notificações não lidas</span>
+                    </span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown" style="width: 300px;">
+                    <li><h6 class="dropdown-header">Notificações</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center py-2" href="#">
+                            <div class="flex-shrink-0">
+                                <div class="bg-primary rounded-circle p-2 text-white">
+                                    <i class="bi bi-cash"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-0">Novo pagamento recebido</h6>
+                                <small class="text-muted">Há 10 minutos</small>
+                            </div>
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center py-2" href="#">
+                            <div class="flex-shrink-0">
+                                <div class="bg-warning rounded-circle p-2 text-white">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-0">Estoque baixo de produto</h6>
+                                <small class="text-muted">Há 2 horas</small>
+                            </div>
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center py-2" href="#">
+                            <div class="flex-shrink-0">
+                                <div class="bg-success rounded-circle p-2 text-white">
+                                    <i class="bi bi-cart-check"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-0">Novo pedido realizado</h6>
+                                <small class="text-muted">Há 1 dia</small>
+                            </div>
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-center" href="#">Ver todas as notificações</a></li>
+                </ul>
+            </div>
+            
+            <!-- Perfil do usuário -->
+            <div class="nav-item dropdown">
+                <a class="nav-link px-3 dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="d-none d-sm-inline me-2">{{ user.get_full_name|default:user.username }}</span>
+                    <div class="avatar-circle">
+                        {% if user.foto %}
+                            <img src="{{ user.foto.url }}" alt="Foto de perfil" class="rounded-circle" width="32" height="32">
+                        {% else %}
+                            <span class="avatar-initials">{{ user.first_name|first }}{{ user.last_name|first }}</span>
+                        {% endif %}
+                    </div>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <li>
+                        <div class="dropdown-item-text">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    {% if user.foto %}
+                                        <img src="{{ user.foto.url }}" alt="Foto de perfil" class="rounded-circle" width="48" height="48">
+                                    {% else %}
+                                        <div class="avatar-circle avatar-lg">
+                                            <span class="avatar-initials">{{ user.first_name|first }}{{ user.last_name|first }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">{{ user.get_full_name }}</h6>
+                                    <p class="text-muted mb-0 small">{{ user.email }}</p>
+                                    <span class="badge bg-primary">{{ user.get_tipo_display }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/perfil/"><i class="bi bi-person me-2"></i>Meu Perfil</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Configurações</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/logout/"><i class="bi bi-box-arrow-right me-2"></i>Sair</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
+                                <i class="bi bi-speedometer2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        
+                        <!-- Financeiro -->
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/financeiro/' in request.path %}active{% endif %}" data-bs-toggle="collapse" href="#financeiro-collapse" role="button" aria-expanded="{% if '/financeiro/' in request.path %}true{% else %}false{% endif %}" aria-controls="financeiro-collapse">
+                                <i class="bi bi-cash-coin"></i>
+                                Financeiro
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </a>
+                            <div class="collapse {% if '/financeiro/' in request.path %}show{% endif %}" id="financeiro-collapse">
+                                <ul class="nav flex-column ms-3">
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.path == '/financeiro/' %}active{% endif %}" href="/financeiro/">
+                                            Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/financeiro/contas-a-pagar/' in request.path %}active{% endif %}" href="/financeiro/contas-a-pagar/">
+                                            Contas a Pagar
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/financeiro/contas-a-receber/' in request.path %}active{% endif %}" href="/financeiro/contas-a-receber/">
+                                            Contas a Receber
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/financeiro/fluxo-de-caixa/' in request.path %}active{% endif %}" href="/financeiro/fluxo-de-caixa/">
+                                            Fluxo de Caixa
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        
+                        <!-- Estoque -->
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/estoque/' in request.path %}active{% endif %}" data-bs-toggle="collapse" href="#estoque-collapse" role="button" aria-expanded="{% if '/estoque/' in request.path %}true{% else %}false{% endif %}" aria-controls="estoque-collapse">
+                                <i class="bi bi-box-seam"></i>
+                                Estoque
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </a>
+                            <div class="collapse {% if '/estoque/' in request.path %}show{% endif %}" id="estoque-collapse">
+                                <ul class="nav flex-column ms-3">
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.path == '/estoque/' %}active{% endif %}" href="/estoque/">
+                                            Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/estoque/produtos/' in request.path %}active{% endif %}" href="/estoque/produtos/">
+                                            Produtos
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/estoque/movimentacoes/' in request.path %}active{% endif %}" href="/estoque/movimentacoes/">
+                                            Movimentações
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/estoque/fornecedores/' in request.path %}active{% endif %}" href="/estoque/fornecedores/">
+                                            Fornecedores
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        
+                        <!-- Vendas -->
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/vendas/' in request.path %}active{% endif %}" data-bs-toggle="collapse" href="#vendas-collapse" role="button" aria-expanded="{% if '/vendas/' in request.path %}true{% else %}false{% endif %}" aria-controls="vendas-collapse">
+                                <i class="bi bi-cart3"></i>
+                                Vendas
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </a>
+                            <div class="collapse {% if '/vendas/' in request.path %}show{% endif %}" id="vendas-collapse">
+                                <ul class="nav flex-column ms-3">
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.path == '/vendas/' %}active{% endif %}" href="/vendas/">
+                                            Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/vendas/clientes/' in request.path %}active{% endif %}" href="/vendas/clientes/">
+                                            Clientes
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/vendas/pedidos/' in request.path %}active{% endif %}" href="/vendas/pedidos/">
+                                            Pedidos
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        
+                        <!-- RH -->
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/rh/' in request.path %}active{% endif %}" data-bs-toggle="collapse" href="#rh-collapse" role="button" aria-expanded="{% if '/rh/' in request.path %}true{% else %}false{% endif %}" aria-controls="rh-collapse">
+                                <i class="bi bi-people"></i>
+                                Recursos Humanos
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </a>
+                            <div class="collapse {% if '/rh/' in request.path %}show{% endif %}" id="rh-collapse">
+                                <ul class="nav flex-column ms-3">
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.path == '/rh/' %}active{% endif %}" href="/rh/">
+                                            Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/rh/funcionarios/' in request.path %}active{% endif %}" href="/rh/funcionarios/">
+                                            Funcionários
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/rh/departamentos/' in request.path %}active{% endif %}" href="/rh/departamentos/">
+                                            Departamentos
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/rh/cargos/' in request.path %}active{% endif %}" href="/rh/cargos/">
+                                            Cargos
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if '/rh/beneficios/' in request.path %}active{% endif %}" href="/rh/beneficios/">
+                                            Benefícios
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        
+                        <!-- Configurações -->
+                        <li class="nav-item mt-3">
+                            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                                <span>Sistema</span>
+                            </h6>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/usuarios/' in request.path %}active{% endif %}" href="/usuarios/">
+                                <i class="bi bi-person-badge"></i>
+                                Usuários
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/configuracoes/' in request.path %}active{% endif %}" href="/configuracoes/">
+                                <i class="bi bi-gear"></i>
+                                Configurações
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
+                                <i class="bi bi-question-circle"></i>
+                                Ajuda
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <!-- Informações do sistema -->
+                    <div class="sidebar-footer mt-auto p-3">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-info-circle text-muted"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-2">
+                                <small class="text-muted d-block">Versão 1.0.0</small>
+                                <small class="text-muted d-block">© {% now "Y" %} Sistema ERP</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Conteúdo principal -->
+            <main id="mainContent" class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <!-- Alertas -->
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-3" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Breadcrumb -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/">Home</a></li>
+                            {% block breadcrumb %}{% endblock %}
+                        </ol>
+                    </nav>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        {% block page_actions %}{% endblock %}
+                    </div>
+                </div>
+                
+                <!-- Conteúdo da página -->
+                <div class="fade-in">
+                    {% block content %}{% endblock %}
+                </div>
+                
+                <!-- Rodapé -->
+                <footer class="footer mt-5 py-3 text-center text-muted">
+                    <div class="container">
+                        <p class="mb-1">Sistema ERP &copy; {% now "Y" %}</p>
+                        <p class="mb-0">Versão 1.0.0</p>
+                    </div>
+                </footer>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Modal de Ajuda -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="helpModalLabel">Ajuda do Sistema</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="accordion" id="helpAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    Como usar o sistema
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    <p>O Sistema ERP é uma plataforma integrada para gerenciamento empresarial. Navegue pelos módulos usando o menu lateral à esquerda.</p>
+                                    <p>Cada módulo possui funcionalidades específicas para diferentes áreas da empresa:</p>
+                                    <ul>
+                                        <li><strong>Financeiro:</strong> Gerenciamento de contas a pagar, contas a receber e fluxo de caixa.</li>
+                                        <li><strong>Estoque:</strong> Controle de produtos, movimentações e fornecedores.</li>
+                                        <li><strong>Vendas:</strong> Gestão de clientes e pedidos.</li>
+                                        <li><strong>RH:</strong> Administração de funcionários, departamentos e cargos.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    Atalhos de teclado
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Atalho</th>
+                                                    <th>Função</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><kbd>Alt</kbd> + <kbd>H</kbd></td>
+                                                    <td>Ir para a página inicial</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><kbd>Alt</kbd> + <kbd>F</kbd></td>
+                                                    <td>Ir para o módulo Financeiro</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><kbd>Alt</kbd> + <kbd>E</kbd></td>
+                                                    <td>Ir para o módulo Estoque</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><kbd>Alt</kbd> + <kbd>V</kbd></td>
+                                                    <td>Ir para o módulo Vendas</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><kbd>Alt</kbd> + <kbd>R</kbd></td>
+                                                    <td>Ir para o módulo RH</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><kbd>Alt</kbd> + <kbd>N</kbd></td>
+                                                    <td>Criar novo registro</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><kbd>Alt</kbd> + <kbd>S</kbd></td>
+                                                    <td>Salvar formulário</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><kbd>Esc</kbd></td>
+                                                    <td>Fechar modal ou cancelar operação</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    Suporte técnico
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    <p>Para obter suporte técnico, entre em contato através dos seguintes canais:</p>
+                                    <ul>
+                                        <li>Email: suporte@sistemaerp.com.br</li>
+                                        <li>Telefone: (11) 1234-5678</li>
+                                        <li>Chat: Clique no ícone de chat no canto inferior direito da tela</li>
+                                    </ul>
+                                    <p>Horário de atendimento: Segunda a sexta, das 8h às 18h</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <a href="#" class="btn btn-primary">Manual completo</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery (necessário para alguns plugins) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="/static/js/erp-scripts.js"></script>
+    <script src="/static/js/erp-visual.js"></script>
+    
+    <!-- Scripts adicionais específicos da página -->
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // Inicializar componentes visuais
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar se há elementos de progresso circular para inicializar
+            if (typeof window.ERP !== 'undefined') {
+                // Inicializar contadores animados se existirem
+                const counterElements = document.querySelectorAll('[data-counter]');
+                counterElements.forEach(function(element) {
+                    const targetValue = parseInt(element.getAttribute('data-counter-value') || '0');
+                    const prefix = element.getAttribute('data-counter-prefix') || '';
+                    const suffix = element.getAttribute('data-counter-suffix') || '';
+                    window.ERP.createAnimatedCounter(element.id, targetValue, prefix, suffix);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

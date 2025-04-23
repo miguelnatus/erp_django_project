@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+
+{% block title %}Produtos - Estoque{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/estoque/">Estoque</a></li>
+<li class="breadcrumb-item active" aria-current="page">Produtos</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#filtroModal">
+        <i class="bi bi-funnel me-1"></i> Filtrar
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i> Exportar
+    </button>
+</div>
+<a href="/estoque/produtos/novo/" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-circle me-1"></i> Novo Produto
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Resumo de Produtos -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_produtos }}</h3>
+                    <p>Total de Produtos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ produtos_disponiveis }}</h3>
+                    <p>Produtos Disponíveis</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ produtos_baixo_estoque }}</h3>
+                    <p>Baixo Estoque</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-danger">
+                <div class="stat-icon">
+                    <i class="bi bi-x-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ produtos_sem_estoque }}</h3>
+                    <p>Sem Estoque</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Produtos -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Produtos</h5>
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <input type="text" class="form-control" placeholder="Buscar produto..." aria-label="Buscar produto">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Imagem</th>
+                            <th>Nome</th>
+                            <th>Categoria</th>
+                            <th>Preço</th>
+                            <th>Estoque</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for produto in produtos %}
+                        <tr>
+                            <td>{{ produto.codigo }}</td>
+                            <td>
+                                {% if produto.imagem %}
+                                <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" class="img-thumbnail" width="50">
+                                {% else %}
+                                <div class="bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-image text-muted"></i>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>{{ produto.nome }}</td>
+                            <td>{{ produto.categoria }}</td>
+                            <td class="text-end">R$ {{ produto.preco|floatformat:2 }}</td>
+                            <td class="text-end">{{ produto.quantidade }}</td>
+                            <td>
+                                {% if produto.quantidade <= 0 %}
+                                <span class="badge bg-danger">Sem Estoque</span>
+                                {% elif produto.quantidade <= produto.estoque_minimo %}
+                                <span class="badge bg-warning">Baixo Estoque</span>
+                                {% else %}
+                                <span class="badge bg-success">Disponível</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="/estoque/produtos/{{ produto.id }}/" class="btn btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="/estoque/produtos/{{ produto.id }}/editar/" class="btn btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#movimentarModal{{ produto.id }}">
+                                        <i class="bi bi-arrow-left-right"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#excluirModal{{ produto.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Modal de Movimentação -->
+                                <div class="modal fade" id="movimentarModal{{ produto.id }}" tabindex="-1" aria-labelledby="movimentarModalLabel{{ produto.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="movimentarModalLabel{{ produto.id }}">Movimentar Estoque</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Produto: <strong>{{ produto.nome }}</strong></p>
+                                                <p>Estoque atual: <strong>{{ produto.quantidade }}</strong></p>
+                                                
+                                                <form>
+                                                    <div class="mb-3">
+                                                        <label for="tipoMovimentacao{{ produto.id }}" class="form-label">Tipo de Movimentação</label>
+                                                        <select class="form-select" id="tipoMovimentacao{{ produto.id }}">
+                                                            <option value="entrada">Entrada</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="ajuste">Ajuste</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="quantidade{{ produto.id }}" class="form-label">Quantidade</label>
+                                                        <input type="number" class="form-control" id="quantidade{{ produto.id }}" min="1" value="1">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="motivo{{ produto.id }}" class="form-label">Motivo</label>
+                                                        <select class="form-select" id="motivo{{ produto.id }}">
+                                                            <option value="compra">Compra</option>
+                                                            <option value="venda">Venda</option>
+                                                            <option value="devolucao">Devolução</option>
+                                                            <option value="perda">Perda/Avaria</option>
+                                                            <option value="inventario">Inventário</option>
+                                                            <option value="outro">Outro</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="observacoes{{ produto.id }}" class="form-label">Observações</label>
+                                                        <textarea class="form-control" id="observacoes{{ produto.id }}" rows="3"></textarea>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="button" class="btn btn-primary">Confirmar Movimentação</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Modal de Exclusão -->
+                                <div class="modal fade" id="excluirModal{{ produto.id }}" tabindex="-1" aria-labelledby="excluirModalLabel{{ produto.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="excluirModalLabel{{ produto.id }}">Confirmar Exclusão</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Tem certeza que deseja excluir o produto <strong>{{ produto.nome }}</strong>?</p>
+                                                <p class="text-danger"><strong>Atenção:</strong> Esta ação não pode ser desfeita e pode afetar registros relacionados.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="button" class="btn btn-danger">Excluir</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-3">Nenhum produto encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <nav aria-label="Paginação de produtos">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
+                    </li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="#">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Filtro -->
+<div class="modal fade" id="filtroModal" tabindex="-1" aria-labelledby="filtroModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filtroModalLabel">Filtrar Produtos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="filtroNome" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="filtroNome">
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroCodigo" class="form-label">Código</label>
+                        <input type="text" class="form-control" id="filtroCodigo">
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroCategoria" class="form-label">Categoria</label>
+                        <select class="form-select" id="filtroCategoria">
+                            <option value="">Todas</option>
+                            {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroStatus" class="form-label">Status</label>
+                        <select class="form-select" id="filtroStatus">
+                            <option value="">Todos</option>
+                            <option value="disponivel">Disponível</option>
+                            <option value="baixo_estoque">Baixo Estoque</option>
+                            <option value="sem_estoque">Sem Estoque</option>
+                        </select>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="filtroPrecoMin" class="form-label">Preço Mínimo</label>
+                            <input type="number" step="0.01" class="form-control" id="filtroPrecoMin">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="filtroPrecoMax" class="form-label">Preço Máximo</label>
+                            <input type="number" step="0.01" class="form-control" id="filtroPrecoMax">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Aplicar Filtros</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Código JavaScript específico para a página de produtos
+    });
+</script>
+{% endblock %}

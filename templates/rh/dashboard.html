@@ -1,0 +1,569 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - RH{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/rh/">Recursos Humanos</a></li>
+<li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#periodoModal">
+        <i class="bi bi-calendar-range me-1"></i> Período
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i> Exportar
+    </button>
+</div>
+<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#relatorioModal">
+    <i class="bi bi-file-earmark-text me-1"></i> Gerar Relatório
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Resumo de RH -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_funcionarios }}</h3>
+                    <p>Total de Funcionários</p>
+                    <small class="text-muted">{{ percentual_funcionarios }}% vs. período anterior</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ contratacoes }}</h3>
+                    <p>Contratações</p>
+                    <small class="text-muted">{{ percentual_contratacoes }}% vs. período anterior</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-danger">
+                <div class="stat-icon">
+                    <i class="bi bi-person-dash"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ desligamentos }}</h3>
+                    <p>Desligamentos</p>
+                    <small class="text-muted">{{ percentual_desligamentos }}% vs. período anterior</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ taxa_retencao|floatformat:1 }}%</h3>
+                    <p>Taxa de Retenção</p>
+                    <small class="text-muted">{{ percentual_retencao }}% vs. período anterior</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos de RH -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Evolução do Quadro de Funcionários</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary active">Mensal</button>
+                        <button type="button" class="btn btn-outline-secondary">Trimestral</button>
+                        <button type="button" class="btn btn-outline-secondary">Anual</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="funcionariosEvolucaoChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Funcionários por Departamento</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="funcionariosDepartamentoChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores de RH e Aniversariantes -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Indicadores de RH</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="indicator-circle bg-primary">
+                                        <i class="bi bi-calendar-check text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Absenteísmo</h6>
+                                    <h4 class="mb-0">{{ taxa_absenteismo|floatformat:1 }}%</h4>
+                                    <small class="text-muted">Meta: 3.0%</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="indicator-circle bg-success">
+                                        <i class="bi bi-clock-history text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Turnover</h6>
+                                    <h4 class="mb-0">{{ taxa_turnover|floatformat:1 }}%</h4>
+                                    <small class="text-muted">Meta: 15.0%</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="indicator-circle bg-info">
+                                        <i class="bi bi-mortarboard text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Horas de Treinamento</h6>
+                                    <h4 class="mb-0">{{ horas_treinamento|floatformat:1 }}</h4>
+                                    <small class="text-muted">Por funcionário</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="indicator-circle bg-warning">
+                                        <i class="bi bi-currency-dollar text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Custo por Contratação</h6>
+                                    <h4 class="mb-0">R$ {{ custo_contratacao|floatformat:0 }}</h4>
+                                    <small class="text-muted">Média por vaga</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Aniversariantes do Mês</h5>
+                    <span class="badge bg-primary">{{ aniversariantes|length }} funcionários</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Funcionário</th>
+                                    <th>Departamento</th>
+                                    <th>Data</th>
+                                    <th>Idade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for aniversariante in aniversariantes %}
+                                <tr>
+                                    <td>
+                                        {% if aniversariante.foto %}
+                                        <img src="{{ aniversariante.foto.url }}" alt="{{ aniversariante.nome }}" class="rounded-circle me-2" width="32" height="32">
+                                        {% else %}
+                                        <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                            <span class="text-white">{{ aniversariante.nome|slice:":1" }}</span>
+                                        </div>
+                                        {% endif %}
+                                        {{ aniversariante.nome }}
+                                    </td>
+                                    <td>{{ aniversariante.departamento.nome }}</td>
+                                    <td>{{ aniversariante.data_nascimento|date:"d/m" }}</td>
+                                    <td>{{ aniversariante.idade }} anos</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">Nenhum aniversariante este mês.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vagas Abertas e Funcionários Recentes -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Vagas Abertas</h5>
+                    <a href="/rh/vagas/" class="btn btn-sm btn-outline-primary">Ver Todas</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Cargo</th>
+                                    <th>Departamento</th>
+                                    <th>Candidatos</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vaga in vagas_abertas %}
+                                <tr>
+                                    <td>{{ vaga.cargo.titulo }}</td>
+                                    <td>{{ vaga.departamento.nome }}</td>
+                                    <td>{{ vaga.candidatos.count }}</td>
+                                    <td>
+                                        {% if vaga.status == 'aberta' %}
+                                        <span class="badge bg-success">Aberta</span>
+                                        {% elif vaga.status == 'entrevista' %}
+                                        <span class="badge bg-primary">Entrevistas</span>
+                                        {% elif vaga.status == 'finalizada' %}
+                                        <span class="badge bg-info">Finalizada</span>
+                                        {% elif vaga.status == 'cancelada' %}
+                                        <span class="badge bg-danger">Cancelada</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">Nenhuma vaga aberta no momento.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Funcionários Recentes</h5>
+                    <a href="/rh/funcionarios/" class="btn btn-sm btn-outline-primary">Ver Todos</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Funcionário</th>
+                                    <th>Cargo</th>
+                                    <th>Departamento</th>
+                                    <th>Data Admissão</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for funcionario in funcionarios_recentes %}
+                                <tr>
+                                    <td>
+                                        {% if funcionario.foto %}
+                                        <img src="{{ funcionario.foto.url }}" alt="{{ funcionario.nome }}" class="rounded-circle me-2" width="32" height="32">
+                                        {% else %}
+                                        <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                            <span class="text-white">{{ funcionario.nome|slice:":1" }}</span>
+                                        </div>
+                                        {% endif %}
+                                        {{ funcionario.nome }}
+                                    </td>
+                                    <td>{{ funcionario.cargo.titulo }}</td>
+                                    <td>{{ funcionario.departamento.nome }}</td>
+                                    <td>{{ funcionario.data_admissao|date:"d/m/Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">Nenhum funcionário recente.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Período -->
+<div class="modal fade" id="periodoModal" tabindex="-1" aria-labelledby="periodoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="periodoModalLabel">Selecionar Período</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="periodoPredefinido" class="form-label">Período Predefinido</label>
+                        <select class="form-select" id="periodoPredefinido">
+                            <option value="hoje">Hoje</option>
+                            <option value="ontem">Ontem</option>
+                            <option value="7dias">Últimos 7 dias</option>
+                            <option value="30dias" selected>Últimos 30 dias</option>
+                            <option value="90dias">Últimos 90 dias</option>
+                            <option value="mes_atual">Mês Atual</option>
+                            <option value="mes_anterior">Mês Anterior</option>
+                            <option value="ano_atual">Ano Atual</option>
+                            <option value="personalizado">Personalizado</option>
+                        </select>
+                    </div>
+                    <div id="periodoPersonalizado" class="d-none">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="dataInicio" class="form-label">Data Inicial</label>
+                                <input type="date" class="form-control" id="dataInicio">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dataFim" class="form-label">Data Final</label>
+                                <input type="date" class="form-control" id="dataFim">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comparacaoPeriodo" class="form-label">Comparar Com</label>
+                        <select class="form-select" id="comparacaoPeriodo">
+                            <option value="periodo_anterior">Período Anterior</option>
+                            <option value="mesmo_periodo_ano_anterior">Mesmo Período do Ano Anterior</option>
+                            <option value="nenhum">Sem Comparação</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Aplicar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Relatório -->
+<div class="modal fade" id="relatorioModal" tabindex="-1" aria-labelledby="relatorioModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="relatorioModalLabel">Gerar Relatório de RH</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="relatorioTipo" class="form-label">Tipo de Relatório</label>
+                        <select class="form-select" id="relatorioTipo">
+                            <option value="resumo">Resumo de RH</option>
+                            <option value="funcionarios">Funcionários</option>
+                            <option value="departamentos">Departamentos</option>
+                            <option value="cargos">Cargos</option>
+                            <option value="contratacoes">Contratações</option>
+                            <option value="desligamentos">Desligamentos</option>
+                            <option value="treinamentos">Treinamentos</option>
+                        </select>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="relatorioDataInicio" class="form-label">Data Inicial</label>
+                            <input type="date" class="form-control" id="relatorioDataInicio">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="relatorioDataFim" class="form-label">Data Final</label>
+                            <input type="date" class="form-control" id="relatorioDataFim">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="relatorioFormato" class="form-label">Formato</label>
+                        <select class="form-select" id="relatorioFormato">
+                            <option value="pdf">PDF</option>
+                            <option value="excel">Excel</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="incluirGraficos" checked>
+                            <label class="form-check-label" for="incluirGraficos">
+                                Incluir gráficos
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="incluirComparativo" checked>
+                            <label class="form-check-label" for="incluirComparativo">
+                                Incluir comparativo com período anterior
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Gerar Relatório</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Controle do período personalizado
+        const periodoPredefinido = document.getElementById('periodoPredefinido');
+        const periodoPersonalizado = document.getElementById('periodoPersonalizado');
+        
+        if (periodoPredefinido && periodoPersonalizado) {
+            periodoPredefinido.addEventListener('change', function() {
+                if (this.value === 'personalizado') {
+                    periodoPersonalizado.classList.remove('d-none');
+                } else {
+                    periodoPersonalizado.classList.add('d-none');
+                }
+            });
+        }
+        
+        // Gráfico de Evolução de Funcionários
+        const ctxEvolucao = document.getElementById('funcionariosEvolucaoChart').getContext('2d');
+        
+        // Dados de exemplo - seriam substituídos por dados reais do backend
+        const labelsEvolucao = [{% for data in datas %}'{{ data }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresTotal = [{% for valor in valores_total %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresContratacoes = [{% for valor in valores_contratacoes %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresDesligamentos = [{% for valor in valores_desligamentos %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        
+        new Chart(ctxEvolucao, {
+            type: 'line',
+            data: {
+                labels: labelsEvolucao,
+                datasets: [
+                    {
+                        label: 'Total de Funcionários',
+                        data: valoresTotal,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Contratações',
+                        data: valoresContratacoes,
+                        borderColor: '#198754',
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Desligamentos',
+                        data: valoresDesligamentos,
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de Funcionários por Departamento
+        const ctxDepartamento = document.getElementById('funcionariosDepartamentoChart').getContext('2d');
+        
+        // Dados de exemplo - seriam substituídos por dados reais do backend
+        const labelsDepartamento = [{% for departamento in departamentos %}'{{ departamento }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresDepartamento = [{% for valor in valores_departamento %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const coresDepartamento = [
+            'rgba(13, 110, 253, 0.7)',
+            'rgba(25, 135, 84, 0.7)',
+            'rgba(255, 193, 7, 0.7)',
+            'rgba(220, 53, 69, 0.7)',
+            'rgba(13, 202, 240, 0.7)',
+            'rgba(108, 117, 125, 0.7)'
+        ];
+        
+        new Chart(ctxDepartamento, {
+            type: 'doughnut',
+            data: {
+                labels: labelsDepartamento,
+                datasets: [
+                    {
+                        data: valoresDepartamento,
+                        backgroundColor: coresDepartamento,
+                        borderColor: '#ffffff',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

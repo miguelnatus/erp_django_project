@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Perfil do Usuário{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>Meu Perfil</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-3">
+                            {% if user.foto %}
+                                <img src="{{ user.foto.url }}" alt="Foto de perfil" class="img-fluid rounded-circle" style="max-width: 150px;">
+                            {% else %}
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 150px; height: 150px;">
+                                    <h1>{{ user.first_name|first }}{{ user.last_name|first }}</h1>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <h3>{{ user.get_full_name }}</h3>
+                            <p class="text-muted">@{{ user.username }}</p>
+                            <p><strong>Tipo de Usuário:</strong> {{ user.get_tipo_display }}</p>
+                            <p><strong>Email:</strong> {{ user.email }}</p>
+                            <p><strong>Telefone:</strong> {{ user.telefone|default:"Não informado" }}</p>
+                            <p><strong>Cargo:</strong> {{ user.cargo|default:"Não informado" }}</p>
+                            <p><strong>Departamento:</strong> {{ user.departamento|default:"Não informado" }}</p>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="#" class="btn btn-primary">Editar Perfil</a>
+                        <a href="#" class="btn btn-outline-secondary">Alterar Senha</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

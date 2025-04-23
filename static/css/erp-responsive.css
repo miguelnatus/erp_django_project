@@ -1,0 +1,299 @@
+/* Melhorias de responsividade e acessibilidade para o Sistema ERP */
+
+/* Variáveis de acessibilidade */
+:root {
+  /* Cores de alto contraste para acessibilidade */
+  --a11y-text-color: #000000;
+  --a11y-bg-color: #ffffff;
+  --a11y-link-color: #0056b3;
+  --a11y-focus-color: #2c3e50;
+  --a11y-focus-outline: 3px solid #2c3e50;
+  
+  /* Tamanhos de fonte para melhor legibilidade */
+  --font-size-base: 1rem;
+  --font-size-sm: 0.875rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-xxl: 2rem;
+  
+  /* Espaçamentos para toque em dispositivos móveis */
+  --touch-target-size: 44px;
+}
+
+/* Melhorias gerais de acessibilidade */
+body {
+  line-height: 1.6;
+  color: var(--a11y-text-color);
+}
+
+/* Foco visível para todos os elementos interativos */
+a:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus,
+[tabindex]:focus {
+  outline: var(--a11y-focus-outline);
+  outline-offset: 2px;
+}
+
+/* Melhorar visibilidade de links */
+a {
+  text-decoration: underline;
+  color: var(--a11y-link-color);
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+/* Melhorias para navegação por teclado */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary-color);
+  color: white;
+  padding: 8px;
+  z-index: 9999;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Melhorias de responsividade para dispositivos móveis */
+@media (max-width: 576px) {
+  /* Aumentar tamanho de toque para elementos interativos */
+  .btn,
+  .nav-link,
+  .form-control,
+  select.form-select {
+    min-height: var(--touch-target-size);
+    padding: 10px 15px;
+  }
+  
+  /* Ajustar tamanho de fonte para melhor legibilidade em telas pequenas */
+  body {
+    font-size: 16px; /* Mínimo recomendado para mobile */
+  }
+  
+  h1 {
+    font-size: 1.75rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  /* Ajustar cards estatísticos para telas pequenas */
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-card .stat-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.25rem;
+  }
+  
+  .stat-card .stat-content h3 {
+    font-size: 1.5rem;
+  }
+  
+  /* Melhorar visualização de tabelas em dispositivos móveis */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ajustar layout de formulários */
+  .form-label {
+    margin-top: 0.5rem;
+  }
+}
+
+/* Melhorias para tablets */
+@media (min-width: 577px) and (max-width: 991px) {
+  /* Ajustar sidebar para tablets */
+  .sidebar {
+    width: 200px;
+  }
+  
+  .main-content {
+    margin-left: 200px;
+  }
+  
+  /* Ajustar cards para tablets */
+  .card {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Melhorias para modo escuro (preferencialmente via media query) */
+@media (prefers-color-scheme: dark) {
+  body.dark-mode {
+    --a11y-text-color: #f8f9fa;
+    --a11y-bg-color: #121212;
+    --a11y-link-color: #8ab4f8;
+    
+    background-color: var(--a11y-bg-color);
+    color: var(--a11y-text-color);
+  }
+  
+  body.dark-mode .card,
+  body.dark-mode .sidebar,
+  body.dark-mode .navbar {
+    background-color: #1e1e1e;
+    border-color: #333;
+  }
+  
+  body.dark-mode .table {
+    color: var(--a11y-text-color);
+  }
+  
+  body.dark-mode .table thead th {
+    background-color: #2a2a2a;
+    color: var(--a11y-text-color);
+  }
+  
+  body.dark-mode .table tbody tr:hover {
+    background-color: #2a2a2a;
+  }
+}
+
+/* Melhorias para impressão */
+@media print {
+  .sidebar,
+  .navbar,
+  .btn,
+  .no-print {
+    display: none !important;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+  
+  body {
+    font-size: 12pt;
+  }
+  
+  h1 {
+    font-size: 18pt;
+  }
+  
+  h2 {
+    font-size: 16pt;
+  }
+}
+
+/* Melhorias para acessibilidade de formulários */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--a11y-focus-color);
+  box-shadow: 0 0 0 0.25rem rgba(44, 62, 80, 0.25);
+}
+
+.form-label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+/* Melhorar contraste de texto em elementos coloridos */
+.text-muted {
+  color: #6c757d !important; /* Garantir contraste suficiente */
+}
+
+.badge {
+  font-weight: 600;
+  padding: 0.35em 0.65em;
+}
+
+/* Melhorias para modais */
+.modal-content {
+  border-radius: var(--border-radius);
+}
+
+.modal-header {
+  border-top-left-radius: calc(var(--border-radius) - 1px);
+  border-top-right-radius: calc(var(--border-radius) - 1px);
+}
+
+/* Melhorias para tooltips e popovers */
+.tooltip, .popover {
+  font-size: var(--font-size-sm);
+}
+
+/* Melhorias para notificações toast */
+.toast {
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+/* Melhorias para animações - respeitar preferências de redução de movimento */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Melhorias para leitores de tela */
+.visually-hidden,
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Melhorias para tabelas responsivas */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767.98px) {
+  .table-responsive-md {
+    display: block;
+    width: 100%;
+  }
+  
+  .table-responsive-md .table {
+    min-width: 100%;
+  }
+}
+
+/* Melhorias para gráficos responsivos */
+.chart-container {
+  position: relative;
+  margin: auto;
+  height: 300px;
+  width: 100%;
+}
+
+@media (max-width: 576px) {
+  .chart-container {
+    height: 200px;
+  }
+}

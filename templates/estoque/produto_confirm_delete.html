@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirmar Exclusão - {{ produto.nome }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/estoque/">Estoque</a></li>
+<li class="breadcrumb-item"><a href="/estoque/produtos/">Produtos</a></li>
+<li class="breadcrumb-item"><a href="{% url 'estoque:produto_detail' produto.pk %}">{{ produto.nome }}</a></li>
+<li class="breadcrumb-item active" aria-current="page">Confirmar Exclusão</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+            <h5 class="card-title mb-0">Confirmar Exclusão</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Atenção!</strong> Esta ação não pode ser desfeita.
+            </div>
+            
+            <p>Você está prestes a excluir o produto <strong>{{ produto.nome }}</strong>.</p>
+            
+            <p>Detalhes do produto:</p>
+            <ul>
+                <li><strong>Código:</strong> {{ produto.codigo|default:"Não informado" }}</li>
+                <li><strong>Categoria:</strong> {{ produto.categoria.nome }}</li>
+                <li><strong>Estoque atual:</strong> {{ produto.estoque_atual }} {{ produto.unidade }}</li>
+                <li><strong>Preço de venda:</strong> R$ {{ produto.preco_venda|floatformat:2 }}</li>
+            </ul>
+            
+            <p class="text-danger">Todas as movimentações de estoque relacionadas a este produto também serão excluídas.</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{% url 'estoque:produto_detail' produto.pk %}" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

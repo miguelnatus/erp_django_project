@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+
+{% block title %}Cargos - RH{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/rh/">Recursos Humanos</a></li>
+<li class="breadcrumb-item active" aria-current="page">Cargos</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i> Exportar
+    </button>
+</div>
+<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#novoCargoModal">
+    <i class="bi bi-plus-circle me-1"></i> Novo Cargo
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Resumo de Cargos -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-briefcase"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_cargos }}</h3>
+                    <p>Total de Cargos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_funcionarios }}</h3>
+                    <p>Total de Funcionários</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-info">
+                <div class="stat-icon">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_departamentos }}</h3>
+                    <p>Departamentos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>R$ {{ media_salario|floatformat:2 }}</h3>
+                    <p>Média Salarial</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Cargos -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Cargos</h5>
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <input type="text" class="form-control" placeholder="Buscar cargo..." aria-label="Buscar cargo">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Título</th>
+                            <th>Departamento</th>
+                            <th>Funcionários</th>
+                            <th>Faixa Salarial</th>
+                            <th>Nível</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cargo in cargos %}
+                        <tr>
+                            <td>{{ cargo.id }}</td>
+                            <td>{{ cargo.titulo }}</td>
+                            <td>{{ cargo.departamento.nome }}</td>
+                            <td>{{ cargo.funcionarios.count }}</td>
+                            <td>R$ {{ cargo.salario_minimo|floatformat:2 }} - R$ {{ cargo.salario_maximo|floatformat:2 }}</td>
+                            <td>{{ cargo.nivel }}</td>
+                            <td>
+                                {% if cargo.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="/rh/cargos/{{ cargo.id }}/" class="btn btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editarCargoModal{{ cargo.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <a href="/rh/cargos/{{ cargo.id }}/funcionarios/" class="btn btn-outline-info">
+                                        <i class="bi bi-people"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#excluirCargoModal{{ cargo.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Modal de Edição -->
+                                <div class="modal fade" id="editarCargoModal{{ cargo.id }}" tabindex="-1" aria-labelledby="editarCargoModalLabel{{ cargo.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editarCargoModalLabel{{ cargo.id }}">Editar Cargo</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form>
+                                                    <div class="mb-3">
+                                                        <label for="tituloCargo{{ cargo.id }}" class="form-label">Título</label>
+                                                        <input type="text" class="form-control" id="tituloCargo{{ cargo.id }}" value="{{ cargo.titulo }}" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="departamentoCargo{{ cargo.id }}" class="form-label">Departamento</label>
+                                                        <select class="form-select" id="departamentoCargo{{ cargo.id }}">
+                                                            <option value="">Selecione um departamento</option>
+                                                            {% for departamento in departamentos %}
+                                                            <option value="{{ departamento.id }}" {% if cargo.departamento.id == departamento.id %}selected{% endif %}>{{ departamento.nome }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-6">
+                                                            <label for="salarioMinimoCargo{{ cargo.id }}" class="form-label">Salário Mínimo</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text">R$</span>
+                                                                <input type="number" step="0.01" class="form-control" id="salarioMinimoCargo{{ cargo.id }}" value="{{ cargo.salario_minimo }}">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="salarioMaximoCargo{{ cargo.id }}" class="form-label">Salário Máximo</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text">R$</span>
+                                                                <input type="number" step="0.01" class="form-control" id="salarioMaximoCargo{{ cargo.id }}" value="{{ cargo.salario_maximo }}">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="nivelCargo{{ cargo.id }}" class="form-label">Nível</label>
+                                                        <select class="form-select" id="nivelCargo{{ cargo.id }}">
+                                                            <option value="Júnior" {% if cargo.nivel == 'Júnior' %}selected{% endif %}>Júnior</option>
+                                                            <option value="Pleno" {% if cargo.nivel == 'Pleno' %}selected{% endif %}>Pleno</option>
+                                                            <option value="Sênior" {% if cargo.nivel == 'Sênior' %}selected{% endif %}>Sênior</option>
+                                                            <option value="Especialista" {% if cargo.nivel == 'Especialista' %}selected{% endif %}>Especialista</option>
+                                                            <option value="Gerente" {% if cargo.nivel == 'Gerente' %}selected{% endif %}>Gerente</option>
+                                                            <option value="Diretor" {% if cargo.nivel == 'Diretor' %}selected{% endif %}>Diretor</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="descricaoCargo{{ cargo.id }}" class="form-label">Descrição</label>
+                                                        <textarea class="form-control" id="descricaoCargo{{ cargo.id }}" rows="3">{{ cargo.descricao }}</textarea>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="requisitoCargo{{ cargo.id }}" class="form-label">Requisitos</label>
+                                                        <textarea class="form-control" id="requisitoCargo{{ cargo.id }}" rows="3">{{ cargo.requisitos }}</textarea>
+                                                    </div>
+                                                    <div class="mb-3 form-check">
+                                                        <input type="checkbox" class="form-check-input" id="ativoCargo{{ cargo.id }}" {% if cargo.ativo %}checked{% endif %}>
+                                                        <label class="form-check-label" for="ativoCargo{{ cargo.id }}">Ativo</label>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="button" class="btn btn-primary">Salvar Alterações</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Modal de Exclusão -->
+                                <div class="modal fade" id="excluirCargoModal{{ cargo.id }}" tabindex="-1" aria-labelledby="excluirCargoModalLabel{{ cargo.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="excluirCargoModalLabel{{ cargo.id }}">Confirmar Exclusão</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Tem certeza que deseja excluir o cargo <strong>{{ cargo.titulo }}</strong>?</p>
+                                                <p class="text-danger"><strong>Atenção:</strong> Esta ação não pode ser desfeita e pode afetar registros relacionados.</p>
+                                                {% if cargo.funcionarios.count > 0 %}
+                                                <div class="alert alert-warning">
+                                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                                    Este cargo possui {{ cargo.funcionarios.count }} funcionário(s) vinculado(s). Eles precisarão ser realocados antes da exclusão.
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="button" class="btn btn-danger" {% if cargo.funcionarios.count > 0 %}disabled{% endif %}>Excluir</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-3">Nenhum cargo encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <nav aria-label="Paginação de cargos">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
+                    </li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="#">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Novo Cargo -->
+<div class="modal fade" id="novoCargoModal" tabindex="-1" aria-labelledby="novoCargoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="novoCargoModalLabel">Novo Cargo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="tituloNovoCargo" class="form-label">Título</label>
+                        <input type="text" class="form-control" id="tituloNovoCargo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="departamentoNovoCargo" class="form-label">Departamento</label>
+                        <select class="form-select" id="departamentoNovoCargo">
+                            <option value="" selected>Selecione um departamento</option>
+                            {% for departamento in departamentos %}
+                            <option value="{{ departamento.id }}">{{ departamento.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="salarioMinimoNovoCargo" class="form-label">Salário Mínimo</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" step="0.01" class="form-control" id="salarioMinimoNovoCargo" value="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="salarioMaximoNovoCargo" class="form-label">Salário Máximo</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" step="0.01" class="form-control" id="salarioMaximoNovoCargo" value="0.00">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nivelNovoCargo" class="form-label">Nível</label>
+                        <select class="form-select" id="nivelNovoCargo">
+                            <option value="Júnior">Júnior</option>
+                            <option value="Pleno">Pleno</option>
+                            <option value="Sênior">Sênior</option>
+                            <option value="Especialista">Especialista</option>
+                            <option value="Gerente">Gerente</option>
+                            <option value="Diretor">Diretor</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descricaoNovoCargo" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricaoNovoCargo" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="requisitoNovoCargo" class="form-label">Requisitos</label>
+                        <textarea class="form-control" id="requisitoNovoCargo" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="ativoNovoCargo" checked>
+                        <label class="form-check-label" for="ativoNovoCargo">Ativo</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Código JavaScript específico para a página de cargos
+    });
+</script>
+{% endblock %}

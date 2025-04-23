@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block title %}Fornecedores - Estoque{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/estoque/">Estoque</a></li>
+<li class="breadcrumb-item active" aria-current="page">Fornecedores</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#filtroModal">
+        <i class="bi bi-funnel me-1"></i> Filtrar
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i> Exportar
+    </button>
+</div>
+<a href="/estoque/fornecedores/novo/" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-circle me-1"></i> Novo Fornecedor
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Resumo de Fornecedores -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_fornecedores }}</h3>
+                    <p>Total de Fornecedores</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ fornecedores_ativos }}</h3>
+                    <p>Fornecedores Ativos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-info">
+                <div class="stat-icon">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ compras_mes }}</h3>
+                    <p>Compras no Mês</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="bi bi-star"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ fornecedores_principais }}</h3>
+                    <p>Fornecedores Principais</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Fornecedores -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Fornecedores</h5>
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <input type="text" class="form-control" placeholder="Buscar fornecedor..." aria-label="Buscar fornecedor">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>CNPJ/CPF</th>
+                            <th>Contato</th>
+                            <th>Telefone</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fornecedor in fornecedores %}
+                        <tr>
+                            <td>{{ fornecedor.id }}</td>
+                            <td>{{ fornecedor.nome }}</td>
+                            <td>{{ fornecedor.cnpj_cpf }}</td>
+                            <td>{{ fornecedor.contato }}</td>
+                            <td>{{ fornecedor.telefone }}</td>
+                            <td>{{ fornecedor.email }}</td>
+                            <td>
+                                {% if fornecedor.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="/estoque/fornecedores/{{ fornecedor.id }}/" class="btn btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="/estoque/fornecedores/{{ fornecedor.id }}/editar/" class="btn btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="/estoque/fornecedores/{{ fornecedor.id }}/produtos/" class="btn btn-outline-info">
+                                        <i class="bi bi-box-seam"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#excluirModal{{ fornecedor.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Modal de Exclusão -->
+                                <div class="modal fade" id="excluirModal{{ fornecedor.id }}" tabindex="-1" aria-labelledby="excluirModalLabel{{ fornecedor.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="excluirModalLabel{{ fornecedor.id }}">Confirmar Exclusão</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Tem certeza que deseja excluir o fornecedor <strong>{{ fornecedor.nome }}</strong>?</p>
+                                                <p class="text-danger"><strong>Atenção:</strong> Esta ação não pode ser desfeita e pode afetar registros relacionados.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="button" class="btn btn-danger">Excluir</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-3">Nenhum fornecedor encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <nav aria-label="Paginação de fornecedores">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
+                    </li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="#">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Filtro -->
+<div class="modal fade" id="filtroModal" tabindex="-1" aria-labelledby="filtroModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filtroModalLabel">Filtrar Fornecedores</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="filtroNome" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="filtroNome">
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroCnpjCpf" class="form-label">CNPJ/CPF</label>
+                        <input type="text" class="form-control" id="filtroCnpjCpf">
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroStatus" class="form-label">Status</label>
+                        <select class="form-select" id="filtroStatus">
+                            <option value="">Todos</option>
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filtroCategoria" class="form-label">Categoria</label>
+                        <select class="form-select" id="filtroCategoria">
+                            <option value="">Todas</option>
+                            {% for categoria in categorias_fornecedores %}
+                            <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="filtroPrincipal">
+                            <label class="form-check-label" for="filtroPrincipal">
+                                Apenas fornecedores principais
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Aplicar Filtros</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Código JavaScript específico para a página de fornecedores
+    });
+</script>
+{% endblock %}

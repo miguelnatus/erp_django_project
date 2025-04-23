@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}Nova Movimentação - Estoque{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/estoque/">Estoque</a></li>
+<li class="breadcrumb-item"><a href="/estoque/movimentacoes/">Movimentações</a></li>
+<li class="breadcrumb-item active" aria-current="page">{{ titulo }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">{{ titulo }}</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" id="movimentacaoForm">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.produto.id_for_label }}" class="form-label">Produto*</label>
+                        {{ form.produto.errors }}
+                        <select name="{{ form.produto.name }}" id="{{ form.produto.id_for_label }}" 
+                                class="form-select {% if form.produto.errors %}is-invalid{% endif %}" required>
+                            <option value="">Selecione...</option>
+                            {% for produto in form.produto.field.queryset %}
+                            <option value="{{ produto.id }}" {% if form.produto.value|stringformat:'s' == produto.id|stringformat:'s' %}selected{% endif %}>
+                                {{ produto.nome }} ({{ produto.codigo|default:"Sem código" }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Movimentação*</label>
+                        {{ form.tipo.errors }}
+                        <select name="{{ form.tipo.name }}" id="{{ form.tipo.id_for_label }}" 
+                                class="form-select {% if form.tipo.errors %}is-invalid{% endif %}" required>
+                            <option value="">Selecione...</option>
+                            <option value="entrada" {% if form.tipo.value == 'entrada' %}selected{% endif %}>Entrada</option>
+                            <option value="saida" {% if form.tipo.value == 'saida' %}selected{% endif %}>Saída</option>
+                            <option value="ajuste" {% if form.tipo.value == 'ajuste' %}selected{% endif %}>Ajuste</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.quantidade.id_for_label }}" class="form-label">Quantidade*</label>
+                        {{ form.quantidade.errors }}
+                        <input type="number" name="{{ form.quantidade.name }}" id="{{ form.quantidade.id_for_label }}" 
+                               class="form-control {% if form.quantidade.errors %}is-invalid{% endif %}" 
+                               value="{{ form.quantidade.value|default:'1' }}" min="1" step="1" required>
+                        <div class="form-text" id="estoqueAtualInfo"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.data.id_for_label }}" class="form-label">Data e Hora*</label>
+                        {{ form.data.errors }}
+                        <input type="datetime-local" name="{{ form.data.name }}" id="{{ form.data.id_for_label }}" 
+                               class="form-control {% if form.data.errors %}is-invalid{% endif %}" 
+                               value="{{ form.data.value|date:'Y-m-d\TH:i' }}" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.responsavel.id_for_label }}" class="form-label">Responsável*</label>
+                    {{ form.responsavel.errors }}
+                    <select name="{{ form.responsavel.name }}" id="{{ form.responsavel.id_for_label }}" 
+                            class="form-select {% if form.responsavel.errors %}is-invalid{% endif %}" required>
+                        <option value="">Selecione...</option>
+                        {% for usuario in form.responsavel.field.queryset %}
+                        <option value="{{ usuario.id }}" {% if form.responsavel.value|stringformat:'s' == usuario.id|stringformat:'s' %}selected{% endif %}>
+                            {{ usuario.get_full_name|default:usuario.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.observacao.id_for_label }}" class="form-label">Observação</label>
+                    {{ form.observacao.errors }}
+                    <textarea name="{{ form.observacao.name }}" id="{{ form.observacao.id_for_label }}" 
+                              class="form-control {% if form.observacao.errors %}is-invalid{% endif %}" 
+                              rows="3">{{ form.observacao.value|default:'' }}</textarea>
+                </div>
+                
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{% url 'estoque:movimentacao_list' %}" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i> Registrar Movimentação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar data atual se for um novo registro
+        const dataInput = document.getElementById('{{ form.data.id_for_label }}');
+        if (dataInput && !dataInput.value) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            dataInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+        
+        // Atualizar informações de estoque ao selecionar produto
+        const produtoSelect = document.getElementById('{{ form.produto.id_for_label }}');
+        const tipoSelect = document.getElementById('{{ form.tipo.id_for_label }}');
+        const quantidadeInput = document.getElementById('{{ form.quantidade.id_for_label }}');
+        const estoqueAtualInfo = document.getElementById('estoqueAtualInfo');
+        
+        // Dados de estoque dos produtos (seria carregado do backend)
+        const produtosEstoque = {
+            {% for produto in form.produto.field.queryset %}
+            "{{ produto.id }}": {
+                "estoque_atual": {{ produto.estoque_atual }},
+                "unidade": "{{ produto.unidade }}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        };
+        
+        function atualizarInfoEstoque() {
+            const produtoId = produtoSelect.value;
+            const tipo = tipoSelect.value;
+            
+            if (produtoId && produtosEstoque[produtoId]) {
+                const produto = produtosEstoque[produtoId];
+                estoqueAtualInfo.textContent = `Estoque atual: ${produto.estoque_atual} ${produto.unidade}`;
+                
+                if (tipo === 'saida' && produto.estoque_atual === 0) {
+                    estoqueAtualInfo.classList.add('text-danger');
+                    estoqueAtualInfo.textContent += ' (Estoque insuficiente)';
+                } else {
+                    estoqueAtualInfo.classList.remove('text-danger');
+                }
+                
+                // Ajustar quantidade máxima para saídas
+                if (tipo === 'saida') {
+                    quantidadeInput.max = produto.estoque_atual;
+                } else {
+                    quantidadeInput.removeAttribute('max');
+                }
+            } else {
+                estoqueAtualInfo.textContent = '';
+            }
+        }
+        
+        if (produtoSelect && tipoSelect) {
+            produtoSelect.addEventListener('change', atualizarInfoEstoque);
+            tipoSelect.addEventListener('change', atualizarInfoEstoque);
+            
+            // Inicializar se já houver valores selecionados
+            if (produtoSelect.value) {
+                atualizarInfoEstoque();
+            }
+        }
+    });
+</script>
+{% endblock %}

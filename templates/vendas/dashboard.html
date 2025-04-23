@@ -1,0 +1,592 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Vendas{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/vendas/">Vendas</a></li>
+<li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#periodoModal">
+        <i class="bi bi-calendar-range me-1"></i> Período
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i> Exportar
+    </button>
+</div>
+<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#relatorioModal">
+    <i class="bi bi-file-earmark-text me-1"></i> Gerar Relatório
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Resumo de Vendas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-cart-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_vendas }}</h3>
+                    <p>Total de Vendas</p>
+                    <small class="text-muted">{{ percentual_vendas }}% vs. período anterior</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>R$ {{ faturamento|floatformat:2 }}</h3>
+                    <p>Faturamento</p>
+                    <small class="text-muted">{{ percentual_faturamento }}% vs. período anterior</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-info">
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ novos_clientes }}</h3>
+                    <p>Novos Clientes</p>
+                    <small class="text-muted">{{ percentual_clientes }}% vs. período anterior</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>R$ {{ ticket_medio|floatformat:2 }}</h3>
+                    <p>Ticket Médio</p>
+                    <small class="text-muted">{{ percentual_ticket }}% vs. período anterior</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos de Vendas -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Evolução de Vendas</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary active">Diário</button>
+                        <button type="button" class="btn btn-outline-secondary">Semanal</button>
+                        <button type="button" class="btn btn-outline-secondary">Mensal</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="vendasEvolucaoChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Vendas por Categoria</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="vendasCategoriaChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Produtos Mais Vendidos e Clientes Top -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Produtos Mais Vendidos</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Categoria</th>
+                                    <th class="text-end">Quantidade</th>
+                                    <th class="text-end">Valor Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for produto in produtos_mais_vendidos %}
+                                <tr>
+                                    <td>{{ produto.nome }}</td>
+                                    <td>{{ produto.categoria }}</td>
+                                    <td class="text-end">{{ produto.quantidade }}</td>
+                                    <td class="text-end">R$ {{ produto.valor_total|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">Nenhum produto vendido no período.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Clientes Top</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th class="text-end">Pedidos</th>
+                                    <th class="text-end">Valor Total</th>
+                                    <th class="text-end">Ticket Médio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cliente in clientes_top %}
+                                <tr>
+                                    <td>{{ cliente.nome }}</td>
+                                    <td class="text-end">{{ cliente.pedidos }}</td>
+                                    <td class="text-end">R$ {{ cliente.valor_total|floatformat:2 }}</td>
+                                    <td class="text-end">R$ {{ cliente.ticket_medio|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">Nenhum cliente com compras no período.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendas por Região e Últimos Pedidos -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Vendas por Região</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="vendasRegiaoChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Últimos Pedidos</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Nº Pedido</th>
+                                    <th>Data</th>
+                                    <th>Cliente</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pedido in ultimos_pedidos %}
+                                <tr>
+                                    <td>{{ pedido.numero }}</td>
+                                    <td>{{ pedido.data }}</td>
+                                    <td>{{ pedido.cliente.nome }}</td>
+                                    <td class="text-end">R$ {{ pedido.valor_total|floatformat:2 }}</td>
+                                    <td>
+                                        {% if pedido.status == 'novo' %}
+                                        <span class="badge bg-info">Novo</span>
+                                        {% elif pedido.status == 'processando' %}
+                                        <span class="badge bg-primary">Processando</span>
+                                        {% elif pedido.status == 'enviado' %}
+                                        <span class="badge bg-warning">Enviado</span>
+                                        {% elif pedido.status == 'entregue' %}
+                                        <span class="badge bg-success">Entregue</span>
+                                        {% elif pedido.status == 'cancelado' %}
+                                        <span class="badge bg-danger">Cancelado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-3">Nenhum pedido encontrado.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="/vendas/pedidos/" class="btn btn-sm btn-outline-primary">Ver Todos os Pedidos</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Período -->
+<div class="modal fade" id="periodoModal" tabindex="-1" aria-labelledby="periodoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="periodoModalLabel">Selecionar Período</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="periodoPredefinido" class="form-label">Período Predefinido</label>
+                        <select class="form-select" id="periodoPredefinido">
+                            <option value="hoje">Hoje</option>
+                            <option value="ontem">Ontem</option>
+                            <option value="7dias" selected>Últimos 7 dias</option>
+                            <option value="30dias">Últimos 30 dias</option>
+                            <option value="90dias">Últimos 90 dias</option>
+                            <option value="mes_atual">Mês Atual</option>
+                            <option value="mes_anterior">Mês Anterior</option>
+                            <option value="ano_atual">Ano Atual</option>
+                            <option value="personalizado">Personalizado</option>
+                        </select>
+                    </div>
+                    <div id="periodoPersonalizado" class="d-none">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="dataInicio" class="form-label">Data Inicial</label>
+                                <input type="date" class="form-control" id="dataInicio">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dataFim" class="form-label">Data Final</label>
+                                <input type="date" class="form-control" id="dataFim">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comparacaoPeriodo" class="form-label">Comparar Com</label>
+                        <select class="form-select" id="comparacaoPeriodo">
+                            <option value="periodo_anterior">Período Anterior</option>
+                            <option value="mesmo_periodo_ano_anterior">Mesmo Período do Ano Anterior</option>
+                            <option value="nenhum">Sem Comparação</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Aplicar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Relatório -->
+<div class="modal fade" id="relatorioModal" tabindex="-1" aria-labelledby="relatorioModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="relatorioModalLabel">Gerar Relatório de Vendas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="relatorioTipo" class="form-label">Tipo de Relatório</label>
+                        <select class="form-select" id="relatorioTipo">
+                            <option value="resumo">Resumo de Vendas</option>
+                            <option value="detalhado">Relatório Detalhado</option>
+                            <option value="produtos">Vendas por Produto</option>
+                            <option value="clientes">Vendas por Cliente</option>
+                            <option value="regioes">Vendas por Região</option>
+                            <option value="categorias">Vendas por Categoria</option>
+                        </select>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="relatorioDataInicio" class="form-label">Data Inicial</label>
+                            <input type="date" class="form-control" id="relatorioDataInicio">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="relatorioDataFim" class="form-label">Data Final</label>
+                            <input type="date" class="form-control" id="relatorioDataFim">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="relatorioFormato" class="form-label">Formato</label>
+                        <select class="form-select" id="relatorioFormato">
+                            <option value="pdf">PDF</option>
+                            <option value="excel">Excel</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="incluirGraficos" checked>
+                            <label class="form-check-label" for="incluirGraficos">
+                                Incluir gráficos
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="incluirComparativo" checked>
+                            <label class="form-check-label" for="incluirComparativo">
+                                Incluir comparativo com período anterior
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Gerar Relatório</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Controle do período personalizado
+        const periodoPredefinido = document.getElementById('periodoPredefinido');
+        const periodoPersonalizado = document.getElementById('periodoPersonalizado');
+        
+        if (periodoPredefinido && periodoPersonalizado) {
+            periodoPredefinido.addEventListener('change', function() {
+                if (this.value === 'personalizado') {
+                    periodoPersonalizado.classList.remove('d-none');
+                } else {
+                    periodoPersonalizado.classList.add('d-none');
+                }
+            });
+        }
+        
+        // Gráfico de Evolução de Vendas
+        const ctxEvolucao = document.getElementById('vendasEvolucaoChart').getContext('2d');
+        
+        // Dados de exemplo - seriam substituídos por dados reais do backend
+        const labelsEvolucao = [{% for data in datas %}'{{ data }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresEvolucao = [{% for valor in valores_evolucao %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresAnterior = [{% for valor in valores_anterior %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        
+        new Chart(ctxEvolucao, {
+            type: 'line',
+            data: {
+                labels: labelsEvolucao,
+                datasets: [
+                    {
+                        label: 'Período Atual',
+                        data: valoresEvolucao,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        borderWidth: 2,
+                        fill: true
+                    },
+                    {
+                        label: 'Período Anterior',
+                        data: valoresAnterior,
+                        borderColor: '#6c757d',
+                        backgroundColor: 'rgba(108, 117, 125, 0.1)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de Vendas por Categoria
+        const ctxCategoria = document.getElementById('vendasCategoriaChart').getContext('2d');
+        
+        // Dados de exemplo - seriam substituídos por dados reais do backend
+        const labelsCategoria = [{% for categoria in categorias %}'{{ categoria }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresCategoria = [{% for valor in valores_categoria %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const coresCategoria = [
+            'rgba(13, 110, 253, 0.7)',
+            'rgba(25, 135, 84, 0.7)',
+            'rgba(255, 193, 7, 0.7)',
+            'rgba(220, 53, 69, 0.7)',
+            'rgba(13, 202, 240, 0.7)',
+            'rgba(108, 117, 125, 0.7)'
+        ];
+        
+        new Chart(ctxCategoria, {
+            type: 'doughnut',
+            data: {
+                labels: labelsCategoria,
+                datasets: [
+                    {
+                        data: valoresCategoria,
+                        backgroundColor: coresCategoria,
+                        borderColor: '#ffffff',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de Vendas por Região
+        const ctxRegiao = document.getElementById('vendasRegiaoChart').getContext('2d');
+        
+        // Dados de exemplo - seriam substituídos por dados reais do backend
+        const labelsRegiao = [{% for regiao in regioes %}'{{ regiao }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresRegiao = [{% for valor in valores_regiao %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        
+        new Chart(ctxRegiao, {
+            type: 'bar',
+            data: {
+                labels: labelsRegiao,
+                datasets: [
+                    {
+                        label: 'Vendas por Região',
+                        data: valoresRegiao,
+                        backgroundColor: [
+                            'rgba(13, 110, 253, 0.7)',
+                            'rgba(25, 135, 84, 0.7)',
+                            'rgba(255, 193, 7, 0.7)',
+                            'rgba(220, 53, 69, 0.7)',
+                            'rgba(13, 202, 240, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(13, 110, 253, 1)',
+                            'rgba(25, 135, 84, 1)',
+                            'rgba(255, 193, 7, 1)',
+                            'rgba(220, 53, 69, 1)',
+                            'rgba(13, 202, 240, 1)'
+                        ],
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

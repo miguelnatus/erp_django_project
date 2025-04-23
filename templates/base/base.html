@@ -1,0 +1,128 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Base Template{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'admin:index' %}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    
+                    <!-- Financeiro -->
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="collapse" href="#financeiro-collapse">
+                            <i class="bi bi-cash-coin"></i> Financeiro
+                        </a>
+                        <div class="collapse" id="financeiro-collapse">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'financeiro:index' %}">Dashboard</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'financeiro:contas_a_pagar_list' %}">Contas a Pagar</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'financeiro:contas_a_receber_list' %}">Contas a Receber</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'financeiro:fluxo_caixa_list' %}">Fluxo de Caixa</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    
+                    <!-- Estoque -->
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="collapse" href="#estoque-collapse">
+                            <i class="bi bi-box-seam"></i> Estoque
+                        </a>
+                        <div class="collapse" id="estoque-collapse">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'estoque:index' %}">Dashboard</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'estoque:produto_list' %}">Produtos</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'estoque:movimentacao_list' %}">Movimentações</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'estoque:fornecedor_list' %}">Fornecedores</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    
+                    <!-- Vendas -->
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="collapse" href="#vendas-collapse">
+                            <i class="bi bi-cart3"></i> Vendas
+                        </a>
+                        <div class="collapse" id="vendas-collapse">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'vendas:index' %}">Dashboard</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'vendas:cliente_list' %}">Clientes</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'vendas:pedido_list' %}">Pedidos</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    
+                    <!-- RH -->
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="collapse" href="#rh-collapse">
+                            <i class="bi bi-people"></i> Recursos Humanos
+                        </a>
+                        <div class="collapse" id="rh-collapse">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'rh:index' %}">Dashboard</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'rh:funcionario_list' %}">Funcionários</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'rh:departamento_list' %}">Departamentos</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'rh:cargo_list' %}">Cargos</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'rh:beneficio_list' %}">Benefícios</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-3" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+            
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+
+{% block title %}Departamentos - RH{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/rh/">Recursos Humanos</a></li>
+<li class="breadcrumb-item active" aria-current="page">Departamentos</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i> Exportar
+    </button>
+</div>
+<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#novoDepartamentoModal">
+    <i class="bi bi-plus-circle me-1"></i> Novo Departamento
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Resumo de Departamentos -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_departamentos }}</h3>
+                    <p>Total de Departamentos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_funcionarios }}</h3>
+                    <p>Total de Funcionários</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-info">
+                <div class="stat-icon">
+                    <i class="bi bi-briefcase"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ media_funcionarios_por_departamento|floatformat:1 }}</h3>
+                    <p>Média por Departamento</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="bi bi-diagram-3"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_cargos }}</h3>
+                    <p>Total de Cargos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Departamentos -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Departamentos</h5>
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <input type="text" class="form-control" placeholder="Buscar departamento..." aria-label="Buscar departamento">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Responsável</th>
+                            <th>Funcionários</th>
+                            <th>Orçamento</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for departamento in departamentos %}
+                        <tr>
+                            <td>{{ departamento.id }}</td>
+                            <td>{{ departamento.nome }}</td>
+                            <td>{{ departamento.responsavel.nome|default:"Não definido" }}</td>
+                            <td>{{ departamento.funcionarios.count }}</td>
+                            <td class="text-end">R$ {{ departamento.orcamento|floatformat:2 }}</td>
+                            <td>
+                                {% if departamento.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="/rh/departamentos/{{ departamento.id }}/" class="btn btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editarDepartamentoModal{{ departamento.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <a href="/rh/departamentos/{{ departamento.id }}/funcionarios/" class="btn btn-outline-info">
+                                        <i class="bi bi-people"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#excluirDepartamentoModal{{ departamento.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Modal de Edição -->
+                                <div class="modal fade" id="editarDepartamentoModal{{ departamento.id }}" tabindex="-1" aria-labelledby="editarDepartamentoModalLabel{{ departamento.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editarDepartamentoModalLabel{{ departamento.id }}">Editar Departamento</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form>
+                                                    <div class="mb-3">
+                                                        <label for="nomeDepartamento{{ departamento.id }}" class="form-label">Nome</label>
+                                                        <input type="text" class="form-control" id="nomeDepartamento{{ departamento.id }}" value="{{ departamento.nome }}" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="responsavelDepartamento{{ departamento.id }}" class="form-label">Responsável</label>
+                                                        <select class="form-select" id="responsavelDepartamento{{ departamento.id }}">
+                                                            <option value="">Selecione um responsável</option>
+                                                            {% for funcionario in funcionarios %}
+                                                            <option value="{{ funcionario.id }}" {% if departamento.responsavel.id == funcionario.id %}selected{% endif %}>{{ funcionario.nome }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="orcamentoDepartamento{{ departamento.id }}" class="form-label">Orçamento</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text">R$</span>
+                                                            <input type="number" step="0.01" class="form-control" id="orcamentoDepartamento{{ departamento.id }}" value="{{ departamento.orcamento }}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="descricaoDepartamento{{ departamento.id }}" class="form-label">Descrição</label>
+                                                        <textarea class="form-control" id="descricaoDepartamento{{ departamento.id }}" rows="3">{{ departamento.descricao }}</textarea>
+                                                    </div>
+                                                    <div class="mb-3 form-check">
+                                                        <input type="checkbox" class="form-check-input" id="ativoDepartamento{{ departamento.id }}" {% if departamento.ativo %}checked{% endif %}>
+                                                        <label class="form-check-label" for="ativoDepartamento{{ departamento.id }}">Ativo</label>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="button" class="btn btn-primary">Salvar Alterações</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Modal de Exclusão -->
+                                <div class="modal fade" id="excluirDepartamentoModal{{ departamento.id }}" tabindex="-1" aria-labelledby="excluirDepartamentoModalLabel{{ departamento.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="excluirDepartamentoModalLabel{{ departamento.id }}">Confirmar Exclusão</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Tem certeza que deseja excluir o departamento <strong>{{ departamento.nome }}</strong>?</p>
+                                                <p class="text-danger"><strong>Atenção:</strong> Esta ação não pode ser desfeita e pode afetar registros relacionados.</p>
+                                                {% if departamento.funcionarios.count > 0 %}
+                                                <div class="alert alert-warning">
+                                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                                    Este departamento possui {{ departamento.funcionarios.count }} funcionário(s) vinculado(s). Eles precisarão ser realocados antes da exclusão.
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="button" class="btn btn-danger" {% if departamento.funcionarios.count > 0 %}disabled{% endif %}>Excluir</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-3">Nenhum departamento encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <nav aria-label="Paginação de departamentos">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
+                    </li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="#">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Novo Departamento -->
+<div class="modal fade" id="novoDepartamentoModal" tabindex="-1" aria-labelledby="novoDepartamentoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="novoDepartamentoModalLabel">Novo Departamento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="nomeNovoDepartamento" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="nomeNovoDepartamento" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="responsavelNovoDepartamento" class="form-label">Responsável</label>
+                        <select class="form-select" id="responsavelNovoDepartamento">
+                            <option value="" selected>Selecione um responsável</option>
+                            {% for funcionario in funcionarios %}
+                            <option value="{{ funcionario.id }}">{{ funcionario.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="orcamentoNovoDepartamento" class="form-label">Orçamento</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" step="0.01" class="form-control" id="orcamentoNovoDepartamento" value="0.00">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descricaoNovoDepartamento" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricaoNovoDepartamento" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="ativoNovoDepartamento" checked>
+                        <label class="form-check-label" for="ativoNovoDepartamento">Ativo</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Código JavaScript específico para a página de departamentos
+    });
+</script>
+{% endblock %}

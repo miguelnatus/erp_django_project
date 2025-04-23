@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Financeiro{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active" aria-current="page">Financeiro</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#relatorioModal">
+        <i class="bi bi-file-earmark-text me-1"></i> Relatório
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i> Exportar
+    </button>
+</div>
+<button type="button" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-circle me-1"></i> Nova Transação
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Resumo Financeiro -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-credit-card"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ contas_a_pagar_pendentes }}</h3>
+                    <p>Contas a Pagar Pendentes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-secondary">
+                <div class="stat-icon">
+                    <i class="bi bi-cash"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ contas_a_receber_pendentes }}</h3>
+                    <p>Contas a Receber Pendentes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-danger">
+                <div class="stat-icon">
+                    <i class="bi bi-arrow-up-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>R$ {{ total_a_pagar|floatformat:2 }}</h3>
+                    <p>Total a Pagar</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="bi bi-arrow-down-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>R$ {{ total_a_receber|floatformat:2 }}</h3>
+                    <p>Total a Receber</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos e Tabelas -->
+    <div class="row">
+        <!-- Gráfico de Fluxo de Caixa -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Fluxo de Caixa</h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                            Este Mês
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                            <li><a class="dropdown-item" href="#">Últimos 7 dias</a></li>
+                            <li><a class="dropdown-item" href="#">Este Mês</a></li>
+                            <li><a class="dropdown-item" href="#">Último Trimestre</a></li>
+                            <li><a class="dropdown-item" href="#">Este Ano</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;" data-chart-type="line" data-chart-data='{"labels":["Jan","Fev","Mar","Abr","Mai","Jun","Jul"],"datasets":[{"label":"Entradas","data":[12000,15000,18000,14000,19000,16000,21000],"borderColor":"#2ecc71","backgroundColor":"rgba(46, 204, 113, 0.1)"},{"label":"Saídas","data":[10000,12000,14000,11000,15000,13000,16000],"borderColor":"#e74c3c","backgroundColor":"rgba(231, 76, 60, 0.1)"}]}'>
+                        <canvas></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribuição de Despesas -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Distribuição de Despesas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;" data-chart-type="doughnut" data-chart-data='{"labels":["Fornecedores","Impostos","Folha de Pagamento","Aluguel","Outros"],"datasets":[{"data":[35,25,20,10,10],"backgroundColor":["#3498db","#e74c3c","#2ecc71","#f39c12","#9b59b6"]}]}'>
+                        <canvas></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Últimos Fluxos de Caixa -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Últimos Fluxos de Caixa</h5>
+                    <a href="/financeiro/fluxo-de-caixa/" class="btn btn-sm btn-outline-primary">
+                        Ver Todos
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Entradas</th>
+                                    <th>Saídas</th>
+                                    <th>Saldo Final</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fluxo in ultimos_fluxos %}
+                                <tr>
+                                    <td>{{ fluxo.data }}</td>
+                                    <td class="text-success">R$ {{ fluxo.entradas|floatformat:2 }}</td>
+                                    <td class="text-danger">R$ {{ fluxo.saidas|floatformat:2 }}</td>
+                                    <td class="{% if fluxo.saldo_final >= 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                        R$ {{ fluxo.saldo_final|floatformat:2 }}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">Nenhum registro encontrado</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ações Rápidas e Calendário -->
+        <div class="col-lg-6 mb-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Ações Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <a href="/financeiro/contas-a-pagar/nova/" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-3">
+                                <i class="bi bi-credit-card me-2 fs-4"></i>
+                                <span>Nova Conta a Pagar</span>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="/financeiro/contas-a-receber/nova/" class="btn btn-success w-100 d-flex align-items-center justify-content-center py-3">
+                                <i class="bi bi-cash me-2 fs-4"></i>
+                                <span>Nova Conta a Receber</span>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="/financeiro/fluxo-de-caixa/novo/" class="btn btn-info w-100 d-flex align-items-center justify-content-center py-3">
+                                <i class="bi bi-graph-up-arrow me-2 fs-4"></i>
+                                <span>Novo Fluxo de Caixa</span>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="#" class="btn btn-secondary w-100 d-flex align-items-center justify-content-center py-3" data-bs-toggle="modal" data-bs-target="#relatorioModal">
+                                <i class="bi bi-file-earmark-text me-2 fs-4"></i>
+                                <span>Gerar Relatório</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Próximos Vencimentos -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Próximos Vencimentos</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <span class="badge bg-danger me-2">Hoje</span>
+                                <span>Pagamento Fornecedor XYZ</span>
+                            </div>
+                            <span class="fw-bold">R$ 1.250,00</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <span class="badge bg-warning me-2">Amanhã</span>
+                                <span>Aluguel</span>
+                            </div>
+                            <span class="fw-bold">R$ 3.500,00</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <span class="badge bg-info me-2">3 dias</span>
+                                <span>Impostos</span>
+                            </div>
+                            <span class="fw-bold">R$ 2.780,00</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <span class="badge bg-success me-2">Hoje</span>
+                                <span>Recebimento Cliente ABC</span>
+                            </div>
+                            <span class="fw-bold text-success">R$ 4.500,00</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Relatório -->
+<div class="modal fade" id="relatorioModal" tabindex="-1" aria-labelledby="relatorioModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="relatorioModalLabel">Gerar Relatório</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="tipoRelatorio" class="form-label">Tipo de Relatório</label>
+                        <select class="form-select" id="tipoRelatorio">
+                            <option selected>Selecione o tipo de relatório</option>
+                            <option value="1">Fluxo de Caixa</option>
+                            <option value="2">Contas a Pagar</option>
+                            <option value="3">Contas a Receber</option>
+                            <option value="4">DRE</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="periodoInicio" class="form-label">Data Inicial</label>
+                        <input type="date" class="form-control" id="periodoInicio">
+                    </div>
+                    <div class="mb-3">
+                        <label for="periodoFim" class="form-label">Data Final</label>
+                        <input type="date" class="form-control" id="periodoFim">
+                    </div>
+                    <div class="mb-3">
+                        <label for="formatoRelatorio" class="form-label">Formato</label>
+                        <select class="form-select" id="formatoRelatorio">
+                            <option value="pdf">PDF</option>
+                            <option value="excel">Excel</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Gerar Relatório</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar os gráficos
+        const chartElements = document.querySelectorAll('.chart-container');
+        chartElements.forEach(function(container) {
+            const canvas = container.querySelector('canvas');
+            if (!canvas || typeof Chart === 'undefined') return;
+            
+            const chartType = container.getAttribute('data-chart-type') || 'bar';
+            const chartData = JSON.parse(container.getAttribute('data-chart-data') || '{}');
+            
+            new Chart(canvas, {
+                type: chartType,
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

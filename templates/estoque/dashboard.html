@@ -1,0 +1,425 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Estoque{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/estoque/">Estoque</a></li>
+<li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#periodoModal">
+        <i class="bi bi-calendar-range me-1"></i> Período
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i> Exportar
+    </button>
+</div>
+<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#relatorioModal">
+    <i class="bi bi-file-earmark-text me-1"></i> Gerar Relatório
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Resumo de Estoque -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_produtos }}</h3>
+                    <p>Total de Produtos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-danger">
+                <div class="stat-icon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ produtos_estoque_baixo }}</h3>
+                    <p>Estoque Baixo</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="bi bi-truck"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_fornecedores }}</h3>
+                    <p>Fornecedores</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-info">
+                <div class="stat-icon">
+                    <i class="bi bi-arrow-left-right"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_movimentacoes }}</h3>
+                    <p>Movimentações</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos de Estoque -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Movimentações de Estoque</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary active">Diário</button>
+                        <button type="button" class="btn btn-outline-secondary">Semanal</button>
+                        <button type="button" class="btn btn-outline-secondary">Mensal</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="movimentacoesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Distribuição por Categoria</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="categoriasChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Produtos com Estoque Baixo e Últimas Movimentações -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Produtos com Estoque Baixo</h5>
+                    <a href="/estoque/produtos/?estoque=baixo" class="btn btn-sm btn-outline-primary">Ver Todos</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Categoria</th>
+                                    <th>Estoque Atual</th>
+                                    <th>Estoque Mínimo</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for produto in produtos_estoque_baixo_lista %}
+                                <tr>
+                                    <td>{{ produto.nome }}</td>
+                                    <td>{{ produto.categoria.nome }}</td>
+                                    <td class="text-end">{{ produto.estoque_atual }}</td>
+                                    <td class="text-end">{{ produto.estoque_minimo }}</td>
+                                    <td>
+                                        {% if produto.estoque_atual == 0 %}
+                                        <span class="badge bg-danger">Esgotado</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Baixo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-3">Nenhum produto com estoque baixo.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Últimas Movimentações</h5>
+                    <a href="/estoque/movimentacoes/" class="btn btn-sm btn-outline-primary">Ver Todas</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Produto</th>
+                                    <th>Tipo</th>
+                                    <th>Quantidade</th>
+                                    <th>Responsável</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for movimentacao in ultimas_movimentacoes %}
+                                <tr>
+                                    <td>{{ movimentacao.data|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ movimentacao.produto.nome }}</td>
+                                    <td>
+                                        {% if movimentacao.tipo == 'entrada' %}
+                                        <span class="badge bg-success">Entrada</span>
+                                        {% elif movimentacao.tipo == 'saida' %}
+                                        <span class="badge bg-danger">Saída</span>
+                                        {% elif movimentacao.tipo == 'ajuste' %}
+                                        <span class="badge bg-info">Ajuste</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{{ movimentacao.quantidade }}</td>
+                                    <td>{{ movimentacao.responsavel.nome }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-3">Nenhuma movimentação encontrada.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Período -->
+<div class="modal fade" id="periodoModal" tabindex="-1" aria-labelledby="periodoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="periodoModalLabel">Selecionar Período</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="periodoPredefinido" class="form-label">Período Predefinido</label>
+                        <select class="form-select" id="periodoPredefinido">
+                            <option value="hoje">Hoje</option>
+                            <option value="ontem">Ontem</option>
+                            <option value="7dias" selected>Últimos 7 dias</option>
+                            <option value="30dias">Últimos 30 dias</option>
+                            <option value="90dias">Últimos 90 dias</option>
+                            <option value="mes_atual">Mês Atual</option>
+                            <option value="mes_anterior">Mês Anterior</option>
+                            <option value="ano_atual">Ano Atual</option>
+                            <option value="personalizado">Personalizado</option>
+                        </select>
+                    </div>
+                    <div id="periodoPersonalizado" class="d-none">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="dataInicio" class="form-label">Data Inicial</label>
+                                <input type="date" class="form-control" id="dataInicio">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dataFim" class="form-label">Data Final</label>
+                                <input type="date" class="form-control" id="dataFim">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Aplicar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Relatório -->
+<div class="modal fade" id="relatorioModal" tabindex="-1" aria-labelledby="relatorioModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="relatorioModalLabel">Gerar Relatório de Estoque</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="relatorioTipo" class="form-label">Tipo de Relatório</label>
+                        <select class="form-select" id="relatorioTipo">
+                            <option value="posicao">Posição de Estoque</option>
+                            <option value="movimentacoes">Movimentações</option>
+                            <option value="estoque_baixo">Produtos com Estoque Baixo</option>
+                            <option value="validade">Produtos por Validade</option>
+                            <option value="fornecedores">Produtos por Fornecedor</option>
+                        </select>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="relatorioDataInicio" class="form-label">Data Inicial</label>
+                            <input type="date" class="form-control" id="relatorioDataInicio">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="relatorioDataFim" class="form-label">Data Final</label>
+                            <input type="date" class="form-control" id="relatorioDataFim">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="relatorioCategoria" class="form-label">Categoria</label>
+                        <select class="form-select" id="relatorioCategoria">
+                            <option value="">Todas</option>
+                            {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="relatorioFormato" class="form-label">Formato</label>
+                        <select class="form-select" id="relatorioFormato">
+                            <option value="pdf">PDF</option>
+                            <option value="excel">Excel</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="incluirGraficos" checked>
+                            <label class="form-check-label" for="incluirGraficos">
+                                Incluir gráficos
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Gerar Relatório</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Controle do período personalizado
+        const periodoPredefinido = document.getElementById('periodoPredefinido');
+        const periodoPersonalizado = document.getElementById('periodoPersonalizado');
+        
+        if (periodoPredefinido && periodoPersonalizado) {
+            periodoPredefinido.addEventListener('change', function() {
+                if (this.value === 'personalizado') {
+                    periodoPersonalizado.classList.remove('d-none');
+                } else {
+                    periodoPersonalizado.classList.add('d-none');
+                }
+            });
+        }
+        
+        // Gráfico de Movimentações
+        const ctxMovimentacoes = document.getElementById('movimentacoesChart').getContext('2d');
+        
+        // Dados de exemplo - seriam substituídos por dados reais do backend
+        const labelsMovimentacoes = [{% for data in datas %}'{{ data }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresEntradas = [{% for valor in valores_entradas %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresSaidas = [{% for valor in valores_saidas %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        
+        new Chart(ctxMovimentacoes, {
+            type: 'bar',
+            data: {
+                labels: labelsMovimentacoes,
+                datasets: [
+                    {
+                        label: 'Entradas',
+                        data: valoresEntradas,
+                        backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                        borderColor: 'rgba(25, 135, 84, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Saídas',
+                        data: valoresSaidas,
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de Categorias
+        const ctxCategorias = document.getElementById('categoriasChart').getContext('2d');
+        
+        // Dados de exemplo - seriam substituídos por dados reais do backend
+        const labelsCategorias = [{% for categoria in categorias_lista %}'{{ categoria }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const valoresCategorias = [{% for valor in valores_categorias %}{{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const coresCategorias = [
+            'rgba(13, 110, 253, 0.7)',
+            'rgba(25, 135, 84, 0.7)',
+            'rgba(255, 193, 7, 0.7)',
+            'rgba(220, 53, 69, 0.7)',
+            'rgba(13, 202, 240, 0.7)',
+            'rgba(108, 117, 125, 0.7)'
+        ];
+        
+        new Chart(ctxCategorias, {
+            type: 'doughnut',
+            data: {
+                labels: labelsCategorias,
+                datasets: [
+                    {
+                        data: valoresCategorias,
+                        backgroundColor: coresCategorias,
+                        borderColor: '#ffffff',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
